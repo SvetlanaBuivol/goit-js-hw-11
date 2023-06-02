@@ -16,13 +16,15 @@ const imagesApiService = new ImagesApiService();
 refs.searchForm.addEventListener('submit', onFormSubmit);
 // refs.loadMoreBtn.addEventListener('click', onLoadMoreClick);
 
-function onFormSubmit(e) {
+async function onFormSubmit(e) {
   e.preventDefault();
 
   Notiflix.Loading.pulse('Loading data, please wait...')
   imagesApiService.query = e.currentTarget.elements.searchQuery.value;
   imagesApiService.resetPage();
-  imagesApiService.getImages().then(images => {
+
+  try {
+    const images = await imagesApiService.getImages();
     Notiflix.Loading.remove();
 
     if (imagesApiService.query === '') {
@@ -41,7 +43,11 @@ function onFormSubmit(e) {
     appendImagesMarkup(images);
     observer.observe(refs.target);
     gallery.refresh();
-  });
+    
+  } catch {
+    Notiflix.Loading.remove();
+    onError();
+  }
 }
 
 const gallery = new SimpleLightbox('.gallery a', {
@@ -109,21 +115,30 @@ let options = {
 
 let observer = new IntersectionObserver(onLoad, options);
 
-function onLoad(entries, observer) {
-  Notiflix.Loading.pulse('Loading data, please wait...')
-  entries.forEach(entry => {
+async function onLoad(entries, observer) {
+  Notiflix.Loading.pulse('Loading data, please wait...');
+  for (const entry of entries) {
     if (entry.isIntersecting) {
-      imagesApiService.getImages().then(images => {
-        appendImagesMarkup(images);
-        Notiflix.Loading.remove();
-        gallery.refresh();
-        if (imagesApiService.currentHits >= images.totalHits) {
-          observer.unobserve(refs.target);
-          refs.theEnd.classList.remove('is-hidden');
+      try {
+      const images = await imagesApiService.getImages();
+      appendImagesMarkup(images);
+      Notiflix.Loading.remove();
+      gallery.refresh();
+      if (imagesApiService.currentHits >= images.totalHits) {
+        observer.unobserve(refs.target);
+        refs.theEnd.classList.remove('is-hidden');
         }
-  });
+      } catch {
+        onError();
+        }
     }
-  });
-}
+  }
+};
 
+function onError() {
+  Notiflix.Notify.failure('Oops! Something went wrong. Please try again', {
+          position: 'center-center',
+          clickToClose: true,
+    });
+}
 
