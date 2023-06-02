@@ -19,16 +19,28 @@ refs.searchForm.addEventListener('submit', onFormSubmit);
 function onFormSubmit(e) {
   e.preventDefault();
 
+  Notiflix.Loading.pulse('Loading data, please wait...')
   imagesApiService.query = e.currentTarget.elements.searchQuery.value;
   imagesApiService.resetPage();
   imagesApiService.getImages().then(images => {
+    Notiflix.Loading.remove();
+
+    if (imagesApiService.query === '') {
+      Notiflix.Notify.failure('Please, enter value', {
+        position: 'center-center',
+      });
+      return;
+    }
+    
+    if (images.totalHits === 0) {
+      Notiflix.Notify.failure("Sorry, there are no images matching your search query. Please try again.")
+      return;
+    }
+    Notiflix.Notify.info(`Hooray! We found ${images.totalHits} images.`)
     clearImagesContainer();
     appendImagesMarkup(images);
     observer.observe(refs.target);
-    if (images.totalHits === 0) {
-      Notiflix.Notify.failure("Sorry, there are no images matching your search query. Please try again.")
-    }
-    gallery.refresh()
+    gallery.refresh();
   });
 }
 
@@ -98,12 +110,14 @@ let options = {
 let observer = new IntersectionObserver(onLoad, options);
 
 function onLoad(entries, observer) {
+  Notiflix.Loading.pulse('Loading data, please wait...')
   entries.forEach(entry => {
     if (entry.isIntersecting) {
       imagesApiService.getImages().then(images => {
-    appendImagesMarkup(images);
+        appendImagesMarkup(images);
+        Notiflix.Loading.remove();
         gallery.refresh();
-        if (imagesApiService.currentHits > images.totalHits) {
+        if (imagesApiService.currentHits >= images.totalHits) {
           observer.unobserve(refs.target);
           refs.theEnd.classList.remove('is-hidden');
         }

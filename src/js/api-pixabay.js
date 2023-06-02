@@ -10,14 +10,14 @@ export default class ImagesApiService {
     this.currentHits = 0;
   }
 
-  getImages() {
+  async getImages() {
     return axios
       .get(
         `${BASE_URL}?key=${API_KEY}&q=${this.searchQuery}&image_type=photo&safesearch=true&orientation=horyzontal&page=${this.page}&per_page=40`
       )
-        .then(response => {
+      .then(response => {
           this.page += 1;
-          this.currentHits += response.data.hits.length;
+        this.currentHits += response.data.hits.length;
           console.log(this.currentHits);
             return response.data;
       });
