@@ -20,7 +20,7 @@ async function onFormSubmit(e) {
   e.preventDefault();
 
   Notiflix.Loading.pulse('Loading data, please wait...')
-  imagesApiService.query = e.currentTarget.elements.searchQuery.value;
+  imagesApiService.query = e.currentTarget.elements.searchQuery.value.trim();
   imagesApiService.resetPage();
 
   try {
@@ -28,6 +28,7 @@ async function onFormSubmit(e) {
     Notiflix.Loading.remove();
 
     if (imagesApiService.query === '') {
+      clearImagesContainer();
       Notiflix.Notify.failure('Please, enter value', {
         position: 'center-center',
       });
@@ -35,6 +36,8 @@ async function onFormSubmit(e) {
     }
     
     if (images.totalHits === 0) {
+
+      clearImagesContainer();
       Notiflix.Notify.failure("Sorry, there are no images matching your search query. Please try again.")
       return;
     }
@@ -127,7 +130,7 @@ async function onLoad(entries, observer) {
       if (imagesApiService.currentHits >= images.totalHits) {
         observer.unobserve(refs.target);
         refs.theEnd.classList.remove('is-hidden');
-        }
+      } 
       } catch {
         onError();
         }
