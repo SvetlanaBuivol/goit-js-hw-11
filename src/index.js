@@ -6,22 +6,23 @@ import Notiflix from 'notiflix';
 const refs = {
   searchForm: document.querySelector('.search-form'),
   imagesContainer: document.querySelector('.gallery'),
-  // loadMoreBtn: document.querySelector('.load-more'),
   target: document.querySelector('.js-guard'),
   theEnd: document.querySelector('.end'),
 };
 
+refs.theEnd.classList.add('is-hidden');
 const imagesApiService = new ImagesApiService();
 
 refs.searchForm.addEventListener('submit', onFormSubmit);
-// refs.loadMoreBtn.addEventListener('click', onLoadMoreClick);
 
 async function onFormSubmit(e) {
   e.preventDefault();
 
-  Notiflix.Loading.pulse('Loading data, please wait...')
+  Notiflix.Loading.pulse('Loading data, please wait...');
   imagesApiService.query = e.currentTarget.elements.searchQuery.value.trim();
+  clearImagesContainer();
   imagesApiService.resetPage();
+  refs.theEnd.classList.add('is-hidden');
 
   try {
     const images = await imagesApiService.getImages();
@@ -34,19 +35,19 @@ async function onFormSubmit(e) {
       });
       return;
     }
-    
-    if (images.totalHits === 0) {
 
+    if (images.totalHits === 0) {
       clearImagesContainer();
-      Notiflix.Notify.failure("Sorry, there are no images matching your search query. Please try again.")
+      Notiflix.Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
       return;
     }
-    Notiflix.Notify.info(`Hooray! We found ${images.totalHits} images.`)
-    clearImagesContainer();
+    Notiflix.Notify.info(`Hooray! We found ${images.totalHits} images.`);
+
     appendImagesMarkup(images);
     observer.observe(refs.target);
     gallery.refresh();
-    
   } catch {
     Notiflix.Loading.remove();
     onError();
@@ -59,13 +60,6 @@ const gallery = new SimpleLightbox('.gallery a', {
   captionDelay: 150,
   loop: false,
 });
-
-// function onLoadMoreClick(e) {
-//   imagesApiService.getImages().then(images => {
-//     appendImagesMarkup(images);
-//     gallery.refresh();
-//   });
-// }
 
 function appendImagesMarkup(images) {
   const imageMarkup = images.hits
@@ -112,36 +106,42 @@ function clearImagesContainer() {
 
 let options = {
   root: null,
-  rootMargin: '300px',
+  rootMargin: '200px',
   threshold: 1.0,
-}
+};
 
 let observer = new IntersectionObserver(onLoad, options);
 
 async function onLoad(entries, observer) {
-  Notiflix.Loading.pulse('Loading data, please wait...');
+  if (imagesApiService.currentHits < 40) {
+    refs.theEnd.classList.remove('is-hidden');
+    return;
+  }
   for (const entry of entries) {
     if (entry.isIntersecting) {
       try {
-      const images = await imagesApiService.getImages();
-      appendImagesMarkup(images);
-      Notiflix.Loading.remove();
-      gallery.refresh();
-      if (imagesApiService.currentHits >= images.totalHits) {
-        observer.unobserve(refs.target);
-        refs.theEnd.classList.remove('is-hidden');
-      } 
+        imagesApiService.incrementPage();
+        Notiflix.Loading.pulse('Loading data, please wait...');
+        const images = await imagesApiService.getImages();
+        appendImagesMarkup(images);
+        Notiflix.Loading.remove();
+        gallery.refresh();
+        console.log(Math.ceil(images.totalHits / 40));
+
+        if (imagesApiService.page === Math.ceil(images.totalHits / 40)) {
+          observer.unobserve(refs.target);
+          refs.theEnd.classList.remove('is-hidden');
+        }
       } catch {
         onError();
-        }
+      }
     }
   }
-};
+}
 
 function onError() {
   Notiflix.Notify.failure('Oops! Something went wrong. Please try again', {
-          position: 'center-center',
-          clickToClose: true,
-    });
+    position: 'center-center',
+    clickToClose: true,
+  });
 }
-

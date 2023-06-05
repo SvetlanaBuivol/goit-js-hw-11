@@ -15,7 +15,7 @@ export default class ImagesApiService {
       .get(
         `${BASE_URL}?key=${API_KEY}&q=${this.searchQuery}&image_type=photo&safesearch=true&orientation=horyzontal&page=${this.page}&per_page=40`
       );
-          this.page += 1;
+          
         this.currentHits += response.data.hits.length;
           console.log(this.currentHits);
             return response.data;
@@ -31,5 +31,9 @@ export default class ImagesApiService {
 
     resetPage() {
         this.page = 1;
-    }
+  }
+  
+  incrementPage() {
+    this.page += 1;
+  }
 }
